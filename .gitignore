@@ -1,0 +1,12 @@
+node_modules/
+.next/
+out/
+.wrangler/
+dist/
+*.wasm
+.env
+.env.local
+.DS_Store
+
+# Keep wasm_exec.js (copied shim) but ignore built WASM
+!worker/src/wasm_exec.js

@@ -1,0 +1,2 @@
+# Legacy /session/:id URLs → query param format
+/session/*  /session?id=:splat  302
