@@ -21,6 +21,8 @@
   {"request_id": "jkl-012", "ts": 1705316627200, "service": "order-service", "level": "info", "msg": "Payment confirmed", "status": 200},
   {"request_id": "abc-123", "ts": 1705316625480, "service": "order-service", "level": "info", "msg": "Rolling back transaction"},
   {"req_id": "abc-123", "timestamp": "2024-01-15T11:03:45.200Z", "app": "auth-service", "level": "debug", "message": "Audit log written"},
+  {"request_id": "abc-123", "service": "api-gateway", "level": "info", "msg": "Metrics flushed (entry has no timestamp)"},
+  {"ts": 1705316625500, "service": "api-gateway", "level": "info", "msg": "Background GC run (entry has no correlation id)"},
   {"request_id": "mno-345", "ts": 1705316628000, "service": "api-gateway", "level": "info", "msg": "Incoming DELETE /cart"},
   {"request_id": "mno-345", "ts": 1705316628050, "service": "order-service", "level": "info", "msg": "Cart cleared", "status": 200},
   {"request_id": "mno-345", "ts": 1705316628100, "service": "api-gateway", "level": "info", "msg": "Request completed", "status": 200}

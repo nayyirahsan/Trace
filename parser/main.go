@@ -18,11 +18,12 @@ func parseAndBuild(_ js.Value, args []js.Value) interface{} {
 	logsJSON := args[0].String()
 	correlationID := args[1].String()
 
-	var rawEntries []map[string]interface{}
-	if err := json.Unmarshal([]byte(logsJSON), &rawEntries); err != nil {
+	rawEntries, malformed, err := parser.DecodeLogs(logsJSON)
+	if err != nil {
 		out, _ := json.Marshal(map[string]interface{}{
 			"timeline": nil,
 			"schema":   nil,
+			"stats":    nil,
 			"error":    err.Error(),
 		})
 		return string(out)
@@ -30,12 +31,14 @@ func parseAndBuild(_ js.Value, args []js.Value) interface{} {
 
 	raw := toRawEntries(rawEntries)
 	schema := parser.InferSchema(raw)
-	entries := parser.ParseEntries(rawEntries, schema)
+	entries, stats := parser.ParseEntries(rawEntries, schema)
+	stats.MalformedLines = malformed
 	timeline := parser.BuildTimeline(entries, correlationID)
 
 	out, _ := json.Marshal(map[string]interface{}{
 		"timeline": timeline,
 		"schema":   schema,
+		"stats":    stats,
 		"error":    nil,
 	})
 	return string(out)

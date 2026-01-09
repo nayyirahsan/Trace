@@ -14,6 +14,17 @@ type SchemaMap struct {
 	Level         string `json:"level"`
 	StatusCode    string `json:"statusCode"`
 	LatencyMs     string `json:"latencyMs"`
+	// Aliases holds secondary field names per role, for dumps that mix
+	// conventions (e.g. request_id in one service, req_id in another).
+	Aliases map[string][]string `json:"aliases,omitempty"`
+}
+
+type ParseStats struct {
+	TotalEntries         int `json:"totalEntries"`
+	ParsedEntries        int `json:"parsedEntries"`
+	MissingTimestamp     int `json:"missingTimestamp"`
+	MissingCorrelationID int `json:"missingCorrelationId"`
+	MalformedLines       int `json:"malformedLines"`
 }
 
 type LogEntry struct {
@@ -47,6 +58,11 @@ type ServiceTimeline struct {
 	HasFailure  bool            `json:"hasFailure"`
 }
 
+type SkewWarning struct {
+	ServiceName string `json:"serviceName"`
+	OffsetMs    int64  `json:"offsetMs"`
+}
+
 type Timeline struct {
 	CorrelationID   string            `json:"correlationId"`
 	Services        []ServiceTimeline `json:"services"`
@@ -54,4 +70,5 @@ type Timeline struct {
 	FailurePoint    *TimelineEvent    `json:"failurePoint"`
 	LastSuccess     *TimelineEvent    `json:"lastSuccess"`
 	EventCount      int               `json:"eventCount"`
+	SuspectedSkew   []SkewWarning     `json:"suspectedSkew,omitempty"`
 }
