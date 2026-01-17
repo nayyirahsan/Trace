@@ -1,0 +1,8 @@
+[
+  {"request_id": "pay-555", "ts": 1719849600000, "service": "api-gateway", "level": "info", "msg": "Incoming POST /pay"},
+  {"request_id": "pay-555", "ts": 1719849600040, "service": "api-gateway", "level": "info", "msg": "Forwarding to billing"},
+  {"request_id": "pay-555", "ts": 1719849480050, "service": "billing-service", "level": "info", "msg": "Charge request received"},
+  {"request_id": "pay-555", "ts": 1719849480120, "service": "billing-service", "level": "info", "msg": "Card authorized", "latency_ms": 70},
+  {"request_id": "pay-555", "ts": 1719849480200, "service": "billing-service", "level": "info", "msg": "Charge captured", "status": 200},
+  {"request_id": "pay-555", "ts": 1719849600300, "service": "api-gateway", "level": "info", "msg": "Returning 200 to client", "status": 200}
+]

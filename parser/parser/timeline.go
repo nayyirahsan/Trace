@@ -6,11 +6,19 @@ import (
 	"time"
 )
 
+// A lane whose events sit entirely outside every other lane's time range by
+// more than this is flagged as suspected clock skew. Timestamps are never
+// rewritten — overlap between concurrent services is normal, and correcting
+// skew reliably needs causal instrumentation this tool deliberately avoids.
+const skewThresholdMs = 5000
+
 func BuildTimeline(entries []LogEntry, correlationID string) Timeline {
 	filtered := make([]LogEntry, 0)
-	for _, e := range entries {
-		if e.CorrelationID == correlationID {
-			filtered = append(filtered, e)
+	if correlationID != "" {
+		for _, e := range entries {
+			if e.CorrelationID == correlationID {
+				filtered = append(filtered, e)
+			}
 		}
 	}
 
@@ -25,87 +33,57 @@ func BuildTimeline(entries []LogEntry, correlationID string) Timeline {
 	for _, e := range filtered {
 		byService[e.ServiceName] = append(byService[e.ServiceName], e)
 	}
+	for name := range byService {
+		sortEntries(byService[name])
+	}
 
+	// Lanes ordered by first activity.
 	serviceNames := make([]string, 0, len(byService))
 	for name := range byService {
 		serviceNames = append(serviceNames, name)
 	}
 	sort.Slice(serviceNames, func(i, j int) bool {
-		sortEntries(byService[serviceNames[i]])
-		sortEntries(byService[serviceNames[j]])
-		return byService[serviceNames[i]][0].Timestamp.Before(byService[serviceNames[j]][0].Timestamp)
+		a, b := byService[serviceNames[i]][0].Timestamp, byService[serviceNames[j]][0].Timestamp
+		if a.Equal(b) {
+			return serviceNames[i] < serviceNames[j]
+		}
+		return a.Before(b)
 	})
 
-	// Apply clock skew adjustments per service (compare raw timestamps to avoid cascade)
-	adjusted := make([][]LogEntry, 0, len(serviceNames))
-	var prevRawLast time.Time
-	for i, name := range serviceNames {
-		svcEntries := make([]LogEntry, len(byService[name]))
-		copy(svcEntries, byService[name])
-		sortEntries(svcEntries)
+	suspectedSkew := detectClockSkew(serviceNames, byService)
 
-		if i > 0 && !prevRawLast.IsZero() {
-			first := svcEntries[0].Timestamp
-			// B's first event before A's last by >100ms → shift B forward
-			if first.Before(prevRawLast) && prevRawLast.Sub(first) > 100*time.Millisecond {
-				offset := prevRawLast.Sub(first) + time.Millisecond
-				for j := range svcEntries {
-					svcEntries[j].Timestamp = svcEntries[j].Timestamp.Add(offset)
-				}
-			}
-		}
-
-		// Track raw (pre-adjustment) last timestamp for next comparison
-		rawLast := byService[name]
-		sortEntries(rawLast)
-		prevRawLast = rawLast[len(rawLast)-1].Timestamp
-		adjusted = append(adjusted, svcEntries)
-	}
-
-	// Find global earliest timestamp
 	var earliest time.Time
-	for _, svcEntries := range adjusted {
-		for _, e := range svcEntries {
-			if earliest.IsZero() || e.Timestamp.Before(earliest) {
-				earliest = e.Timestamp
-			}
+	for _, svcEntries := range byService {
+		if earliest.IsZero() || svcEntries[0].Timestamp.Before(earliest) {
+			earliest = svcEntries[0].Timestamp
 		}
 	}
 
-	var allEvents []TimelineEvent
-	services := make([]ServiceTimeline, 0, len(adjusted))
-
-	for _, svcEntries := range adjusted {
-		if len(svcEntries) == 0 {
-			continue
-		}
-
+	services := make([]ServiceTimeline, 0, len(serviceNames))
+	for _, name := range serviceNames {
+		svcEntries := byService[name]
 		events := make([]TimelineEvent, 0, len(svcEntries))
 		hasFailure := false
 
 		for _, e := range svcEntries {
-			relativeMs := e.Timestamp.Sub(earliest).Milliseconds()
 			isFailure := IsFailureEvent(e)
 			if isFailure {
 				hasFailure = true
 			}
-
 			events = append(events, TimelineEvent{
-				ServiceName:   e.ServiceName,
-				Timestamp:     e.Timestamp,
-				RelativeMs:    relativeMs,
-				Message:       e.Message,
-				Level:         e.Level,
-				StatusCode:    e.StatusCode,
-				LatencyMs:     e.LatencyMs,
-				IsFailure:     isFailure,
-				IsLastSuccess: false,
+				ServiceName: e.ServiceName,
+				Timestamp:   e.Timestamp,
+				RelativeMs:  e.Timestamp.Sub(earliest).Milliseconds(),
+				Message:     e.Message,
+				Level:       e.Level,
+				StatusCode:  e.StatusCode,
+				LatencyMs:   e.LatencyMs,
+				IsFailure:   isFailure,
 			})
-			allEvents = append(allEvents, events[len(events)-1])
 		}
 
 		services = append(services, ServiceTimeline{
-			ServiceName: svcEntries[0].ServiceName,
+			ServiceName: name,
 			Events:      events,
 			FirstEvent:  svcEntries[0].Timestamp,
 			LastEvent:   svcEntries[len(svcEntries)-1].Timestamp,
@@ -113,7 +91,15 @@ func BuildTimeline(entries []LogEntry, correlationID string) Timeline {
 		})
 	}
 
-	sort.Slice(allEvents, func(i, j int) bool {
+	// Global order over pointers into the lanes, so marking last-success
+	// updates the lane copy and the summary pointer together.
+	allEvents := make([]*TimelineEvent, 0, len(filtered))
+	for si := range services {
+		for ei := range services[si].Events {
+			allEvents = append(allEvents, &services[si].Events[ei])
+		}
+	}
+	sort.SliceStable(allEvents, func(i, j int) bool {
 		if allEvents[i].RelativeMs == allEvents[j].RelativeMs {
 			return allEvents[i].ServiceName < allEvents[j].ServiceName
 		}
@@ -122,91 +108,96 @@ func BuildTimeline(entries []LogEntry, correlationID string) Timeline {
 
 	var failurePoint *TimelineEvent
 	var lastSuccess *TimelineEvent
-
-	for i := range allEvents {
-		if allEvents[i].IsFailure && failurePoint == nil {
-			failurePoint = &allEvents[i]
+	for _, ev := range allEvents {
+		if ev.IsFailure {
+			failurePoint = ev
 			break
 		}
+		lastSuccess = ev
 	}
-
-	if failurePoint != nil {
-		var best *TimelineEvent
-		for i := range allEvents {
-			if allEvents[i].IsFailure {
-				break
-			}
-			if !allEvents[i].IsFailure {
-				best = &allEvents[i]
-			}
-		}
-		// Find highest RelativeMs non-failure before first failure
-		for i := range allEvents {
-			if allEvents[i].RelativeMs >= failurePoint.RelativeMs {
-				break
-			}
-			if !allEvents[i].IsFailure {
-				if best == nil || allEvents[i].RelativeMs > best.RelativeMs {
-					best = &allEvents[i]
-				}
-			}
-		}
-		lastSuccess = best
-
-		if lastSuccess != nil {
-			for si := range services {
-				for ei := range services[si].Events {
-					if services[si].Events[ei].RelativeMs == lastSuccess.RelativeMs &&
-						services[si].Events[ei].ServiceName == lastSuccess.ServiceName &&
-						services[si].Events[ei].Message == lastSuccess.Message {
-						services[si].Events[ei].IsLastSuccess = true
-						*lastSuccess = services[si].Events[ei]
-					}
-				}
-			}
-			for i := range allEvents {
-				if allEvents[i].RelativeMs == lastSuccess.RelativeMs &&
-					allEvents[i].ServiceName == lastSuccess.ServiceName &&
-					allEvents[i].Message == lastSuccess.Message {
-					allEvents[i].IsLastSuccess = true
-					break
-				}
-			}
-		}
-
-		for i := range allEvents {
-			if allEvents[i].RelativeMs == failurePoint.RelativeMs &&
-				allEvents[i].ServiceName == failurePoint.ServiceName &&
-				allEvents[i].Message == failurePoint.Message {
-				failurePoint = &allEvents[i]
-				break
-			}
-		}
-	}
-
-	var totalDuration int64
-	if len(allEvents) > 0 {
-		totalDuration = allEvents[len(allEvents)-1].RelativeMs
+	if failurePoint == nil {
+		lastSuccess = nil
+	} else if lastSuccess != nil {
+		lastSuccess.IsLastSuccess = true
 	}
 
 	return Timeline{
 		CorrelationID:   correlationID,
 		Services:        services,
-		TotalDurationMs: totalDuration,
+		TotalDurationMs: allEvents[len(allEvents)-1].RelativeMs,
 		FailurePoint:    failurePoint,
 		LastSuccess:     lastSuccess,
 		EventCount:      len(allEvents),
+		SuspectedSkew:   suspectedSkew,
 	}
 }
 
+// detectClockSkew flags lanes whose entire activity window is disjoint from
+// every other lane's window by more than skewThresholdMs. OffsetMs is the
+// estimated minimum clock offset (positive: lane's clock appears ahead).
+func detectClockSkew(serviceNames []string, byService map[string][]LogEntry) []SkewWarning {
+	if len(serviceNames) < 2 {
+		return nil
+	}
+
+	warnings := []SkewWarning{}
+	for _, name := range serviceNames {
+		lane := byService[name]
+		laneMin := lane[0].Timestamp
+		laneMax := lane[len(lane)-1].Timestamp
+
+		var othersMin, othersMax time.Time
+		for _, other := range serviceNames {
+			if other == name {
+				continue
+			}
+			o := byService[other]
+			if othersMin.IsZero() || o[0].Timestamp.Before(othersMin) {
+				othersMin = o[0].Timestamp
+			}
+			if othersMax.IsZero() || o[len(o)-1].Timestamp.After(othersMax) {
+				othersMax = o[len(o)-1].Timestamp
+			}
+		}
+
+		if gap := laneMin.Sub(othersMax).Milliseconds(); gap > skewThresholdMs {
+			warnings = append(warnings, SkewWarning{ServiceName: name, OffsetMs: gap})
+		} else if gap := othersMin.Sub(laneMax).Milliseconds(); gap > skewThresholdMs {
+			warnings = append(warnings, SkewWarning{ServiceName: name, OffsetMs: -gap})
+		}
+	}
+	if len(warnings) == 0 {
+		return nil
+	}
+
+	// When every lane is disjoint from every other (typically just two
+	// lanes), the gap is real but which clock is wrong is ambiguous — keep
+	// only the most suspect lane: fewest events, then a clock running
+	// behind (the common NTP failure mode), then name.
+	if len(warnings) == len(serviceNames) {
+		sort.Slice(warnings, func(i, j int) bool {
+			ni, nj := len(byService[warnings[i].ServiceName]), len(byService[warnings[j].ServiceName])
+			if ni != nj {
+				return ni < nj
+			}
+			if (warnings[i].OffsetMs < 0) != (warnings[j].OffsetMs < 0) {
+				return warnings[i].OffsetMs < 0
+			}
+			return warnings[i].ServiceName < warnings[j].ServiceName
+		})
+		warnings = warnings[:1]
+	}
+	return warnings
+}
+
 func sortEntries(entries []LogEntry) {
-	sort.Slice(entries, func(i, j int) bool {
+	sort.SliceStable(entries, func(i, j int) bool {
 		return entries[i].Timestamp.Before(entries[j].Timestamp)
 	})
 }
 
 func IsFailureEvent(entry LogEntry) bool {
-	if entry.Level == "error" || entry.Level == "fatal" {
+	if entry.Level == "error" || entry.Level == "fatal" || entry.Level == "critical" {
 		return true
 	}
 	if entry.StatusCode >= 500 {
