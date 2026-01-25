@@ -11,6 +11,20 @@ export interface SchemaMap {
   level: string;
   statusCode: string;
   latencyMs: string;
+  aliases?: Record<string, string[]>;
+}
+
+export interface ParseStats {
+  totalEntries: number;
+  parsedEntries: number;
+  missingTimestamp: number;
+  missingCorrelationId: number;
+  malformedLines: number;
+}
+
+export interface SkewWarning {
+  serviceName: string;
+  offsetMs: number;
 }
 
 export interface TimelineEvent {
@@ -40,6 +54,7 @@ export interface Timeline {
   failurePoint: TimelineEvent | null;
   lastSuccess: TimelineEvent | null;
   eventCount: number;
+  suspectedSkew?: SkewWarning[];
 }
 
 export interface NarrativeResult {
@@ -53,16 +68,20 @@ export interface ParseResponse {
   narrative: NarrativeResult | null;
   sessionId: string;
   schema?: SchemaMap;
+  stats?: ParseStats | null;
 }
 
 export interface SessionData {
   timeline: Timeline;
   narrative: NarrativeResult | null;
   correlationId: string;
+  stats?: ParseStats | null;
 }
 
 export interface WasmResult {
   timeline: Timeline;
   schema: SchemaMap;
+  stats: ParseStats | null;
   error: string | null;
+  engine?: 'wasm' | 'ts';
 }

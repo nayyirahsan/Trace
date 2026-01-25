@@ -4,8 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
     "deploy": "wrangler deploy",
-    "db:migrate:local": "wrangler d1 execute trace-sessions --local --file=./migrations/0001_create_sessions.sql"
+    "db:migrate:local": "wrangler d1 execute trace-sessions --local --file=./migrations/0001_create_sessions.sql",
+    "batch:live-ai": "node scripts/live-narrative-batch.mjs"
   },
   "dependencies": {
     "nanoid": "^3.3.8"
@@ -13,6 +16,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241127.0",
     "typescript": "^5.7.2",
-    "wrangler": "^3.99.0"
+    "wrangler": "^3.99.0",
+    "tsx": "^4.19.2"
   }
 }
