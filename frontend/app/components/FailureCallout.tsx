@@ -1,7 +1,5 @@
 'use client';
 
-import { LANE_LABEL_MARGIN } from '@/lib/layout';
-
 interface FailureCalloutProps {
   relativeMs: number;
   totalDurationMs: number;
@@ -20,7 +18,7 @@ export default function FailureCallout({
 
   return (
     <div
-      className={`absolute top-0 bottom-0 z-20 pointer-events-none ${LANE_LABEL_MARGIN}`}
+      className="absolute top-0 bottom-0 z-20 pointer-events-none"
       style={{ left: `${leftPercent}%`, width: 0 }}
     >
       <div className="relative h-full">

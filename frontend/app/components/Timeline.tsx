@@ -1,6 +1,6 @@
 'use client';
 
-import type { NarrativeResult, Timeline as TimelineType } from '@/lib/types';
+import type { NarrativeResult, ParseStats, Timeline as TimelineType } from '@/lib/types';
 import { LANE_LABEL_MARGIN } from '@/lib/layout';
 import FailureCallout from './FailureCallout';
 import NarrativeCard from './NarrativeCard';
@@ -9,6 +9,13 @@ import ServiceLane from './ServiceLane';
 interface TimelineProps {
   timeline: TimelineType;
   narrative?: NarrativeResult | null;
+  stats?: ParseStats | null;
+}
+
+function formatOffset(offsetMs: number): string {
+  const abs = Math.abs(offsetMs);
+  const value = abs >= 1000 ? `${(abs / 1000).toFixed(1)}s` : `${abs}ms`;
+  return `${value} ${offsetMs < 0 ? 'behind' : 'ahead of'}`;
 }
 
 function getTickInterval(totalMs: number): number {
@@ -17,7 +24,7 @@ function getTickInterval(totalMs: number): number {
   return 1000;
 }
 
-export default function Timeline({ timeline, narrative }: TimelineProps) {
+export default function Timeline({ timeline, narrative, stats }: TimelineProps) {
   const duration = timeline.totalDurationMs || 1;
   const tickInterval = getTickInterval(duration);
   const ticks: number[] = [];
@@ -38,6 +45,25 @@ export default function Timeline({ timeline, narrative }: TimelineProps) {
           {timeline.eventCount} events · {timeline.totalDurationMs}ms total · {timeline.services.length} services
         </span>
       </div>
+
+      {stats && stats.parsedEntries < stats.totalEntries + stats.malformedLines && (
+        <p className="mb-3 text-xs text-trace-muted">
+          Parsed {stats.parsedEntries} of {stats.totalEntries + stats.malformedLines} lines
+          {stats.malformedLines > 0 && ` · ${stats.malformedLines} malformed skipped`}
+          {stats.missingTimestamp > 0 && ` · ${stats.missingTimestamp} without a timestamp`}
+          {stats.missingCorrelationId > 0 && ` · ${stats.missingCorrelationId} without a correlation ID`}
+        </p>
+      )}
+
+      {timeline.suspectedSkew && timeline.suspectedSkew.length > 0 && (
+        <div className="mb-3 rounded-lg border border-trace-warning/40 bg-trace-warning/10 px-3 py-2 text-xs text-trace-warning">
+          Suspected clock skew:{' '}
+          {timeline.suspectedSkew
+            .map((w) => `${w.serviceName} appears ~${formatOffset(w.offsetMs)} the other services`)
+            .join('; ')}
+          . Timestamps are shown as logged.
+        </div>
+      )}
 
       <div className="relative rounded-lg border border-trace-border bg-trace-surface/50 p-4 overflow-x-auto">
         {/* Time axis */}
@@ -81,13 +107,19 @@ export default function Timeline({ timeline, narrative }: TimelineProps) {
             </div>
           ))}
 
+          {/* Overlay constrained to the lane area (after the label column)
+              so the callout's left% lines up with the event markers */}
           {timeline.failurePoint && (
-            <FailureCallout
-              relativeMs={timeline.failurePoint.relativeMs}
-              totalDurationMs={duration}
-              serviceName={timeline.failurePoint.serviceName}
-              message={timeline.failurePoint.message}
-            />
+            <div className={`absolute inset-y-0 right-0 ${LANE_LABEL_MARGIN} left-0 pointer-events-none`}>
+              <div className="relative h-full">
+                <FailureCallout
+                  relativeMs={timeline.failurePoint.relativeMs}
+                  totalDurationMs={duration}
+                  serviceName={timeline.failurePoint.serviceName}
+                  message={timeline.failurePoint.message}
+                />
+              </div>
+            </div>
           )}
         </div>
       </div>

@@ -18,6 +18,11 @@ export interface ServiceTimeline {
   hasFailure: boolean;
 }
 
+export interface SkewWarning {
+  serviceName: string;
+  offsetMs: number;
+}
+
 export interface Timeline {
   correlationId: string;
   services: ServiceTimeline[];
@@ -25,6 +30,15 @@ export interface Timeline {
   failurePoint: TimelineEvent | null;
   lastSuccess: TimelineEvent | null;
   eventCount: number;
+  suspectedSkew?: SkewWarning[];
+}
+
+export interface ParseStats {
+  totalEntries: number;
+  parsedEntries: number;
+  missingTimestamp: number;
+  missingCorrelationId: number;
+  malformedLines: number;
 }
 
 export interface NarrativeResult {
@@ -41,6 +55,7 @@ export interface SchemaMap {
   level: string;
   statusCode: string;
   latencyMs: string;
+  aliases?: Record<string, string[]>;
 }
 
 export interface ParseResponse {
@@ -48,10 +63,12 @@ export interface ParseResponse {
   narrative: NarrativeResult | null;
   sessionId: string;
   schema?: SchemaMap;
+  stats?: ParseStats | null;
 }
 
 export interface SessionData {
   timeline: Timeline;
   narrative: NarrativeResult | null;
   correlationId: string;
+  stats?: ParseStats | null;
 }

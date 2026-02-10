@@ -1,0 +1,14 @@
+{"request_id": "ord-77f2", "ts-unix-ms": 1719849600000, "service": "edge-proxy", "level": "info", "msg": "Accepted POST /orders"}
+{"request_id": "ord-77f2", "ts-unix-ms": 1719849600015, "service": "edge-proxy", "level": "info", "msg": "Forwarding to checkout", "latency_ms": 15}
+{"req_id": "ord-77f2", "timestamp": "2024-07-01T16:00:00.040Z", "app": "checkout", "severity": "INFO", "message": "Order payload validated"}
+{"req_id": "ord-77f2", "timestamp": "2024-07-01T16:00:00.090Z", "app": "checkout", "severity": "INFO", "message": "Reserving stock", "duration_ms": 50}
+this line is not json at all — a stray stack trace fragment
+{"traceId": "ord-77f2", "time": 1719849600.150, "component": "inventory", "lvl": "INFO", "text": "Stock reserved for 3 SKUs"}
+{"traceId": "ord-77f2", "time": 1719849600.210, "component": "inventory", "lvl": "ERROR", "text": "Warehouse RPC timeout after 60ms", "status": 504}
+{"req_id": "ord-77f2", "timestamp": "2024-07-01T16:00:00.250Z", "app": "checkout", "severity": "ERROR", "message": "Stock reservation failed", "status_code": 502}
+{"request_id": "ord-77f2", "ts-unix-ms": 1719849600280, "service": "edge-proxy", "level": "error", "msg": "Returning 502 to client", "status": 502}
+{"request_id": "ord-9a1c", "ts-unix-ms": 1719849601000, "service": "edge-proxy", "level": "info", "msg": "Accepted GET /orders/123"}
+{"req_id": "ord-9a1c", "timestamp": "2024-07-01T16:00:01.030Z", "app": "checkout", "severity": "INFO", "message": "Order fetched", "status_code": 200}
+{"request_id": "ord-9a1c", "service": "edge-proxy", "level": "info", "msg": "Access log flushed (no timestamp on this line)"}
+{"ts-unix-ms": 1719849601500, "service": "edge-proxy", "level": "info", "msg": "Healthcheck ping (no correlation id)"}
+{ broken json line missing quotes and braces

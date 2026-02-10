@@ -56,7 +56,7 @@ export default function LogInput({ value, onChange }: LogInputProps) {
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder='Paste JSON log array here, e.g. [{"request_id": "abc-123", "ts": 1705316625000, ...}]'
+          placeholder='Paste structured logs — a JSON array or one JSON object per line (NDJSON), e.g. {"request_id": "abc-123", "ts": 1705316625000, "service": "api", "msg": "..."}'
           className="w-full h-64 resize-y rounded-lg bg-trace-bg/50 p-4 font-mono text-xs text-slate-300 placeholder:text-trace-muted focus:outline-none focus:ring-1 focus:ring-trace-accent"
         />
         <div className="absolute bottom-2 right-2 flex items-center gap-2">

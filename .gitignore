@@ -10,3 +10,4 @@ dist/
 
 # Keep wasm_exec.js (copied shim) but ignore built WASM
 !worker/src/wasm_exec.js
+frontend/tsconfig.tsbuildinfo

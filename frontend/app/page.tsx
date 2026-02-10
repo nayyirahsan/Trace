@@ -5,7 +5,13 @@ import LogInput from './components/LogInput';
 import Timeline from './components/Timeline';
 import TimelineSkeleton from './components/TimelineSkeleton';
 import { ParseError, parseLogs, shareUrl } from '@/lib/api';
-import type { NarrativeResult, SchemaMap, Timeline as TimelineType } from '@/lib/types';
+import type { NarrativeResult, ParseStats, SchemaMap, Timeline as TimelineType } from '@/lib/types';
+
+const SAMPLES = [
+  { label: 'Mixed microservices', file: 'mixed_services_sample.json', id: 'abc-123' },
+  { label: 'NDJSON · 3 naming conventions', file: 'ndjson_mixed_conventions.ndjson', id: 'ord-77f2' },
+  { label: 'Clock skew', file: 'clock_skew_sample.json', id: 'pay-555' },
+];
 
 export default function HomePage() {
   const [logs, setLogs] = useState('');
@@ -16,7 +22,15 @@ export default function HomePage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [schema, setSchema] = useState<SchemaMap | null>(null);
+  const [stats, setStats] = useState<ParseStats | null>(null);
   const [copied, setCopied] = useState(false);
+
+  async function loadSample(sample: (typeof SAMPLES)[number]) {
+    const res = await fetch(`/samples/${sample.file}`);
+    setLogs(await res.text());
+    setCorrelationId(sample.id);
+    setError(null);
+  }
 
   async function handleParse() {
     if (!logs.trim() || !correlationId.trim()) {
@@ -30,6 +44,7 @@ export default function HomePage() {
     setNarrative(null);
     setSessionId(null);
     setSchema(null);
+    setStats(null);
 
     try {
       const result = await parseLogs(logs, correlationId.trim());
@@ -37,6 +52,7 @@ export default function HomePage() {
       setNarrative(result.narrative);
       setSessionId(result.sessionId);
       setSchema(result.schema ?? null);
+      setStats(result.stats ?? null);
     } catch (err) {
       if (err instanceof ParseError) {
         setError(err.message);
@@ -74,6 +90,20 @@ export default function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Input panel */}
           <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-trace-muted">Try a sample:</span>
+              {SAMPLES.map((sample) => (
+                <button
+                  key={sample.file}
+                  type="button"
+                  onClick={() => loadSample(sample)}
+                  className="rounded-full border border-trace-border px-3 py-1 text-xs text-slate-300 hover:border-trace-accent hover:text-trace-accent transition-colors"
+                >
+                  {sample.label}
+                </button>
+              ))}
+            </div>
+
             <LogInput value={logs} onChange={setLogs} />
 
             <div>
@@ -126,7 +156,7 @@ export default function HomePage() {
           <div>
             {loading && <TimelineSkeleton />}
             {!loading && timeline && timeline.eventCount > 0 && (
-              <Timeline timeline={timeline} narrative={narrative} />
+              <Timeline timeline={timeline} narrative={narrative} stats={stats} />
             )}
             {!loading && !timeline && !error && (
               <div className="flex items-center justify-center h-64 rounded-lg border border-dashed border-trace-border text-trace-muted text-sm">

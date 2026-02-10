@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Timeline from '@/app/components/Timeline';
 import TimelineSkeleton from '@/app/components/TimelineSkeleton';
 import { getSession } from '@/lib/api';
-import type { NarrativeResult, Timeline as TimelineType } from '@/lib/types';
+import type { NarrativeResult, ParseStats, Timeline as TimelineType } from '@/lib/types';
 
 export default function SessionView() {
   const searchParams = useSearchParams();
@@ -13,6 +13,7 @@ export default function SessionView() {
 
   const [timeline, setTimeline] = useState<TimelineType | null>(null);
   const [narrative, setNarrative] = useState<NarrativeResult | null>(null);
+  const [stats, setStats] = useState<ParseStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,6 +29,7 @@ export default function SessionView() {
         const session = await getSession(id);
         setTimeline(session.timeline);
         setNarrative(session.narrative);
+        setStats(session.stats ?? null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load session');
       } finally {
@@ -57,7 +59,7 @@ export default function SessionView() {
             {error}
           </div>
         )}
-        {!loading && !error && timeline && <Timeline timeline={timeline} narrative={narrative} />}
+        {!loading && !error && timeline && <Timeline timeline={timeline} narrative={narrative} stats={stats} />}
       </div>
     </main>
   );
