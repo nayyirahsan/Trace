@@ -8,6 +8,7 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
+    "allowArbitraryExtensions": true,
     "isolatedModules": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true

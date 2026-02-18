@@ -6,12 +6,14 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "trace-sessions"
-database_id = "YOUR_D1_DATABASE_ID"
+database_id = "ac369f77-4db1-48c9-9880-59cf4c7fc7f2"
 
 [ai]
 binding = "AI"
 
+# CompiledWasm imports .wasm as a pre-compiled WebAssembly.Module —
+# workerd forbids runtime compilation of raw bytes (Data rule would break).
 [[rules]]
-type = "Data"
+type = "CompiledWasm"
 globs = ["**/*.wasm"]
 fallthrough = true

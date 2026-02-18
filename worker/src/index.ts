@@ -21,22 +21,32 @@ export default {
       const body = (await request.json()) as { logs: string; correlationId: string };
       const { logs, correlationId } = body;
 
-      const { timeline, schema, error } = await runWasm(logs, correlationId);
+      if (typeof logs !== 'string' || typeof correlationId !== 'string' || !correlationId.trim()) {
+        return Response.json(
+          { error: 'logs and correlationId are required' },
+          { status: 400, headers: cors },
+        );
+      }
+
+      const { timeline, schema, stats, error, engine } = await runWasm(logs, correlationId.trim());
       if (error) {
-        return Response.json({ error }, { status: 400, headers: cors });
+        return Response.json({ error }, { status: 400, headers: { ...cors, 'x-trace-engine': engine ?? 'ts' } });
       }
 
       if (timeline.eventCount === 0) {
         return Response.json(
-          { error: 'No events found for this ID', schema, timeline },
-          { status: 404, headers: cors },
+          { error: 'No events found for this ID', schema, timeline, stats },
+          { status: 404, headers: { ...cors, 'x-trace-engine': engine ?? 'ts' } },
         );
       }
 
       const narrative = await generateNarrative(timeline, env);
-      const sessionId = await saveSession(env.DB, { timeline, narrative, correlationId });
+      const sessionId = await saveSession(env.DB, { timeline, narrative, correlationId, stats });
 
-      return Response.json({ timeline, narrative, sessionId, schema }, { headers: cors });
+      return Response.json(
+        { timeline, narrative, sessionId, schema, stats, engine },
+        { headers: { ...cors, 'x-trace-engine': engine ?? 'ts' } },
+      );
     }
 
     if (url.pathname.startsWith('/session/') && request.method === 'GET') {
