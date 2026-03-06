@@ -46,7 +46,7 @@ ${JSON.stringify(context, null, 2)}
 Respond with only the summary text, no preamble.`;
 
   try {
-    const response = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+    const response = await env.AI.run('@cf/meta/llama-3.1-8b-instruct-fast', {
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 220,
       temperature: 0.2,
