@@ -41,25 +41,29 @@ export default function SessionView() {
 
   return (
     <main className="min-h-screen">
-      <header className="border-b border-trace-border bg-trace-surface/80 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <a href="/" className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity">
-              <span className="text-trace-accent">Trace</span>
-            </a>
-            <p className="text-xs text-trace-muted">Shared session · {id}</p>
-          </div>
+      <header className="border-b border-trace-border/70 bg-trace-surface/60 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-baseline gap-4 px-6 py-4">
+          <a href="/" className="transition-opacity hover:opacity-80">
+            <h1 className="font-mono text-lg font-semibold tracking-[0.3em] text-trace-ink">
+              TRACE<span className="text-trace-accent">▍</span>
+            </h1>
+          </a>
+          <p className="font-mono text-[11px] text-trace-muted">
+            shared session · <span className="text-trace-ink/70">{id}</span>
+          </p>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="mx-auto max-w-5xl px-6 py-8">
         {loading && <TimelineSkeleton />}
         {error && (
-          <div className="rounded-lg border border-trace-failure/30 bg-trace-failure/10 p-4 text-sm text-trace-failure">
+          <div className="rounded-xl border border-trace-failure/30 bg-trace-failure/[0.08] p-4 font-mono text-xs text-trace-failure">
             {error}
           </div>
         )}
-        {!loading && !error && timeline && <Timeline timeline={timeline} narrative={narrative} stats={stats} />}
+        {!loading && !error && timeline && (
+          <Timeline timeline={timeline} narrative={narrative} stats={stats} />
+        )}
       </div>
     </main>
   );

@@ -7,5 +7,27 @@
 }
 
 body {
-  @apply bg-trace-bg text-slate-100 antialiased;
+  @apply bg-trace-bg text-trace-ink antialiased font-sans;
+  background-image:
+    radial-gradient(900px 340px at 75% -80px, rgba(45, 212, 191, 0.055), transparent 70%),
+    radial-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+  background-size: auto, 26px 26px;
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(45, 212, 191, 0.25);
+}
+
+/* thin, quiet scrollbars for the log textarea */
+textarea::-webkit-scrollbar {
+  width: 10px;
+}
+textarea::-webkit-scrollbar-thumb {
+  background: #1d2735;
+  border-radius: 5px;
+  border: 2px solid #0f141c;
+}
+textarea::-webkit-scrollbar-track {
+  background: transparent;
 }

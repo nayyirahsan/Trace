@@ -39,12 +39,16 @@ export default function LogInput({ value, onChange }: LogInputProps) {
   const isLarge = charCount > MAX_WARN_SIZE;
 
   return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium text-slate-300">Raw JSON Logs</label>
+    <div className="space-y-1.5">
+      <label className="font-mono text-[10px] uppercase tracking-[0.22em] text-trace-muted">
+        Raw JSON logs
+      </label>
 
       <div
-        className={`relative rounded-lg border-2 border-dashed transition-colors ${
-          dragOver ? 'border-trace-accent bg-trace-accent/5' : 'border-trace-border'
+        className={`relative rounded-xl border transition-colors ${
+          dragOver
+            ? 'border-dashed border-trace-accent bg-trace-accent/5'
+            : 'border-trace-border bg-trace-surface'
         }`}
         onDragOver={(e) => {
           e.preventDefault();
@@ -56,21 +60,22 @@ export default function LogInput({ value, onChange }: LogInputProps) {
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder='Paste structured logs — a JSON array or one JSON object per line (NDJSON), e.g. {"request_id": "abc-123", "ts": 1705316625000, "service": "api", "msg": "..."}'
-          className="w-full h-64 resize-y rounded-lg bg-trace-bg/50 p-4 font-mono text-xs text-slate-300 placeholder:text-trace-muted focus:outline-none focus:ring-1 focus:ring-trace-accent"
+          spellCheck={false}
+          placeholder={'{"request_id": "abc-123", "ts": 1705316625000, "service": "api", "msg": "…"}\none JSON object per line, or a JSON array'}
+          className="h-64 w-full resize-y rounded-xl bg-transparent p-3.5 font-mono text-xs leading-relaxed text-trace-ink/90 placeholder:text-trace-faint focus:outline-none focus:ring-1 focus:ring-trace-accent/60"
         />
-        <div className="absolute bottom-2 right-2 flex items-center gap-2">
+        <div className="absolute bottom-2 right-2.5">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="text-xs text-trace-accent hover:text-blue-400 transition-colors"
+            className="rounded border border-trace-border bg-trace-raised px-2 py-1 font-mono text-[10px] text-trace-muted transition-colors hover:border-trace-accent/60 hover:text-trace-accent"
           >
-            Upload file
+            upload file
           </button>
           <input
             ref={fileInputRef}
             type="file"
-            accept=".json,.log,.txt"
+            accept=".json,.log,.txt,.ndjson"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -80,11 +85,10 @@ export default function LogInput({ value, onChange }: LogInputProps) {
         </div>
       </div>
 
-      <div className="flex justify-between text-xs">
-        <span className="text-trace-muted">Accepts .json, .log, .txt — drag & drop supported</span>
-        <span className={isLarge ? 'text-trace-warning font-medium' : 'text-trace-muted'}>
-          {charCount.toLocaleString()} chars
-          {isLarge && ' — large file, parsing may be slow'}
+      <div className="flex justify-between font-mono text-[10px] text-trace-faint">
+        <span>.json · .ndjson · .log · drag &amp; drop</span>
+        <span className={isLarge ? 'font-medium text-trace-warning' : ''}>
+          {charCount.toLocaleString()} chars{isLarge && ' — large paste, parsing may be slow'}
         </span>
       </div>
     </div>

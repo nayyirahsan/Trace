@@ -2,22 +2,32 @@
 
 export default function TimelineSkeleton() {
   return (
-    <div className="w-full animate-pulse space-y-4">
-      <div className="h-6 w-48 bg-trace-border/30 rounded" />
-      <div className="rounded-lg border border-trace-border bg-trace-surface/50 p-4 space-y-6">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="flex items-center gap-4">
-            <div className="w-36 h-4 bg-trace-border/30 rounded" />
-            <div className="flex-1 h-px bg-trace-border/20 relative">
+    <div className="w-full animate-pulse">
+      <div className="mb-3 flex items-end justify-between">
+        <div className="space-y-2">
+          <div className="h-2.5 w-28 rounded bg-trace-border/40" />
+          <div className="h-6 w-40 rounded-md bg-trace-border/40" />
+        </div>
+        <div className="h-3 w-44 rounded bg-trace-border/30" />
+      </div>
+      <div className="rounded-xl border border-trace-border bg-trace-surface/90 px-4 pb-3 pt-9 shadow-panel">
+        <div className="mb-3 ml-44 h-3 rounded bg-trace-border/20" />
+        {[28, 46, 64].map((pos, i) => (
+          <div key={i} className="flex h-12 items-center border-t border-trace-hairline first:border-t-0">
+            <div className="w-44 shrink-0 space-y-1.5 pr-3">
+              <div className="h-3 w-28 rounded bg-trace-border/40" />
+              <div className="h-2 w-16 rounded bg-trace-border/25" />
+            </div>
+            <div className="relative h-[7px] flex-1 rounded-full bg-trace-border/15">
               <div
-                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-trace-border/40"
-                style={{ left: `${20 + i * 25}%` }}
+                className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-trace-border/50"
+                style={{ left: `${pos}%` }}
               />
             </div>
           </div>
         ))}
       </div>
-      <div className="h-20 bg-trace-border/20 rounded-lg" />
+      <div className="mt-5 h-20 rounded-xl border border-trace-border bg-trace-surface/60" />
     </div>
   );
 }
