@@ -36,7 +36,7 @@ flowchart LR
 | Parser | Go 1.22+ → WASM via `CompiledWasm` module rule (TypeScript fallback with identical logic) |
 | API | Cloudflare Workers (TypeScript) |
 | Storage | Cloudflare D1 (SQLite) |
-| AI | Cloudflare Workers AI — Llama 3.1 8B Instruct, output validated before display |
+| AI | Cloudflare Workers AI — `@cf/meta/llama-3.1-8b-instruct-fast` (the base 8B model was deprecated 2026-05-30), output validated before display |
 | Frontend | Next.js 14 static export, Tailwind CSS |
 | Hosting | CF Pages (frontend) + CF Workers (API) |
 
@@ -62,9 +62,9 @@ Worker: `https://trace-worker.nayyirahsan.workers.dev` · Frontend: `https://tra
 | Metric | Result |
 |--------|--------|
 | Requests served by the Go WASM engine in production (`x-trace-engine` header) | **34/34** |
-| Live Workers AI (`@cf/meta/llama-3.1-8b-instruct`) summaries passing the grounding validator | **34/34 accepted, 0 template fallbacks** |
+| Live Workers AI (`@cf/meta/llama-3.1-8b-instruct-fast`) summaries passing the grounding validator | **34/34 accepted, 0 template fallbacks** |
 | Delivered summaries failing independent local re-validation (i.e. hallucinated services/numbers reaching users) | **0/34** |
-| Sample-timeline `POST /parse` on the edge, including the live AI call | min 200 ms · **median 355 ms** · max 624 ms |
+| Sample-timeline `POST /parse` on the edge, including the live AI call | min 205 ms · **median 391 ms** · max 732 ms |
 | 10,000-line dump (1.35 MB upload) through the production edge, incl. live AI + D1 write | median **1.53 s** end-to-end (5 runs) |
 | Production D1 session round-trip (`POST /parse` → `GET /session/:id`) | identical timeline + narrative returned |
 
